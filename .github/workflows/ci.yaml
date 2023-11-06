@@ -12,7 +12,7 @@ jobs:
       MAIN_URL: ${{ vars.MAIN_URL }}
 
     steps:
-      - uses: actions/checkout@03
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v3
