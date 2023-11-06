@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build the Docker image
-        run: docker build -t ${{ vars.DOCKER_PROJECT }}:${GITHUB_REF_NAME} -f Dockerfile
+        run: docker build -t ${{ vars.DOCKER_PROJECT }}:${GITHUB_REF_NAME} -f Dockerfile .
 
       - name: Push image to docker
         run: docker push ${{ vars.DOCKER_PROJECT }}:${GITHUB_REF_NAME}
