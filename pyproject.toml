@@ -2,7 +2,7 @@
 name = "pera-fastapi"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <ionrusu114@ionrusu114.com>"]
+authors = ["Ion Rusu <ionrusu114@ionrusu114.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -10,6 +10,9 @@ python = "^3.10"
 fastapi = "^0.104.1"
 uvicorn = "^0.24.0.post1"
 pydantic-settings = "^2.0.3"
+telethon = "^1.32.0"
+sqlalchemy = "^2.0.23"
+pymysql = "^1.1.0"
 
 
 [tool.poetry.group.test.dependencies]
