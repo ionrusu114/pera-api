@@ -3,9 +3,9 @@ from fastapi import FastAPI, HTTPException,Depends,status
 from pydantic import BaseModel,EmailStr,Field
 from enum import Enum
 from typing import Annotated
-import models
+from .models import models
 from pera_fastapi.models import models
-from database import engine, SesssionLocal
+from .database import engine, SesssionLocal
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import json
