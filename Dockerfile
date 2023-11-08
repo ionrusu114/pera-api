@@ -6,7 +6,7 @@ WORKDIR /code
 
 RUN pip install --upgrade pip
 RUN apk add gcc musl-dev libffi-dev
-
+RUN apk add mysql-client
 RUN pip install poetry
 
 COPY  . /code
