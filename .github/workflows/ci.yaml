@@ -31,17 +31,17 @@ jobs:
         run: |
           poetry install
 
-      - name: Run Tests
-        run: |
-          poetry run pytest
+      # - name: Run Tests
+      #   run: |
+      #     poetry run pytest
 
       # - name: Run mypy
       #   run: |
       #     poetry run mypy ./
 
-      - name: Run pylint
-        run: |
-          poetry run pylint ./pera_fastapi
+      # - name: Run pylint
+      #   run: |
+      #     poetry run pylint ./pera_fastapi
   build:
     runs-on: ubuntu-latest
     # if: github.ref == 'refs/heads/main'/

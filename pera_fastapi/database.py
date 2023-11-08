@@ -1,3 +1,5 @@
+""" Database """
+import dataclasses
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -8,8 +10,4 @@ engine = create_engine(URL_DATABASE)
 
 SesssionLocal = sessionmaker(autocommit=False, autoflush=False,bind=engine)
 
-class Base:
-    __allow_unmapped__ = True
-
-
-Base = declarative_base(cls=Base)
+Base = declarative_base()
