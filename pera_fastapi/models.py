@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, String, BigInteger, Float,Numeric,DateTime
-from database import Base
+from .database import Base
 import datetime
 
 class Group(Base):

@@ -8,4 +8,8 @@ engine = create_engine(URL_DATABASE)
 
 SesssionLocal = sessionmaker(autocommit=False, autoflush=False,bind=engine)
 
-Base = declarative_base()
+class Base:
+    __allow_unmapped__ = True
+
+
+Base = declarative_base(cls=Base)
