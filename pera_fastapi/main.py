@@ -30,6 +30,7 @@ async def create_group(group: GroupBase, db: DBD):
     db_group = models.Group(**group.dict())
     db.add(db_group)
     db.commit()
+    return "Success add group"
 
 @app.get("/groups/",status_code=status.HTTP_200_OK)
 async def get_all_groups(db: DBD):

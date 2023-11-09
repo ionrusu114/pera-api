@@ -1,7 +1,6 @@
 FROM python:3.10.12-alpine
 
 EXPOSE 8070
-EXPOSE 3306
 
 WORKDIR /code
 
