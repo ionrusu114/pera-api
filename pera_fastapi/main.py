@@ -1,47 +1,32 @@
-""" Main """
+""" This module contains the main application and API endpoints."""
 from typing import Annotated
 from fastapi import FastAPI, HTTPException,Depends,status
-from .schemas import GroupBase
 from sqlalchemy.orm import Session
-from pera_fastapi import models
-from .database import engine, SesssionLocal,get_db
+from .models import models
+from .models.database import engine, get_db,SesssionLocal
+from .routes import account_router,group_router,history_routes,group_senders_router
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 models.Base.metadata.create_all(bind=engine)
-app = FastAPI()
+app = FastAPI(title="PERA API",name="Pera API",version="1.0.0",description="Pera API Using FastAPI",docs_url="/docs/")
 
-DBD = Annotated[Session, Depends(get_db)]
+# Configurarea CORS
+origins = [
+    "*",
+]
 
-@app.post("/group/",status_code=status.HTTP_201_CREATED)
-async def create_group(group: GroupBase, db: DBD):
-    """ create_group endpoint"""
-    db_group = models.Group(**group.dict())
-    db.add(db_group)
-    db.commit()
-    return "Success add group"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/groups/",status_code=status.HTTP_200_OK)
-async def get_all_groups(db: DBD):
-    """ get_all_groups endpoint"""
-    groups = db.query(models.Group).all()
-    if groups is None:
-        raise HTTPException(status_code=404,detail='Groups was not found')
-    return groups
-
-@app.get("/group/{id_group}",status_code=status.HTTP_200_OK)
-async def get_group(id_group: int, db: DBD):
-    """ get_group endpoint"""
-    group = db.query(models.Group).filter(models.Group.id == id_group).first()
-    if group is None:
-        raise HTTPException(status_code=404,detail='Group was not found')
-    return group
-
-
-@app.delete("/group/{id_group}",status_code=status.HTTP_200_OK)
-async def delete_group(id_group: int, db: DBD):
-    db_group = db.query(models.Group).filter(models.Group.id == id_group).first()
-    if db_group is None:
-        raise HTTPException(status_code=404,detail='Group was not found')
-    db.delete(db_group)
-    db.commit()
-    return "Success delete group - {}".format(id_group)
-        
+app.include_router(group_router.router, prefix="/api/telegram/bot", tags=["groups"])
+app.include_router(account_router.router, prefix="/api/telegram/bot", tags=["accounts"])
+app.include_router(history_routes.router, prefix="/api/telegram/bot", tags=["histories"])
+app.include_router(group_senders_router.router, prefix="/api/telegram/bot", tags=["group_senders"])
