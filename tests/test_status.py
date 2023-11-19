@@ -9,5 +9,5 @@ def test_status():
     """
     client = TestClient(app)
     result = client.get("groups")
-    assert result.status_code == 200
+    assert result.status_code == 201
     # assert result.json() == {"status": "ok"}

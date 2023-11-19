@@ -1,0 +1,26 @@
+export MAIN_URL=/ && export MYSQL_HOST=localhost && export MYSQL_ROOT_PASSWORD=wQlG5unrYTLT9cTONHcg && export MYSQL_USER=peradmin && export MYSQL_PASSWORD=wQlG5unrYTLT9cTONHcg && export MYSQL_DATABASE=pera-api && export REDIS_HOST=localhost && export REDIS_PORT=6379 && export REDIS_PASSWORD=leonidas1121 && export SECRET_AUTH=SECRET && export MYSQL_PORT=3306
+
+poetry run uvicorn pera_fastapi.main:app --reload --port 8070
+
+alembic init migrations
+alembic revision --autogenerate -m "Database creation new modification"
+
+alembic upgrade [revision_id for migrations on versions folder]
+
+alembic downgrade [revision_id for migrations on versions folder]
+
+alembic history
+
+alembic current
+
+alembic stamp [revision_id for migrations on versions folder]
+
+alembic stamp head - set the current revision to the latest available
+
+alembic stamp base - set the current revision to the base
+
+celery -A pera_fastapi.tasks.tasks:celery [worker | beat | flower] --loglevel=INFO --pool=solo (--concurrency=1) (--detach) (--pidfile=celery.pid) (--logfile=celery.log)
+
+celery -A pera_fastapi.tasks.tasks:celery worker --loglevel=info -c 4
+celery -A pera_fastapi.tasks.tasks:celery flower --loglevel=info
+celery -A pera_fastapi.tasks.tasks:celery beat --loglevel=info

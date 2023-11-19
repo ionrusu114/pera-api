@@ -1,11 +1,22 @@
-"""  This module contains the group router.  """
+""" 
+This module contains the group router.
+
+The group router provides the following endpoints:
+- POST /group/ - creates a new group in the database.
+- GET /groups/ - retrieves all groups.
+- GET /group/{id_group} - retrieves a group by ID.
+- DELETE /group/{id_group} - deletes a group with the given id from the database.
+- PUT /group/{id_group} - updates a group with the given id in the database.
+"""
 from typing import Annotated
 from fastapi import APIRouter, HTTPException,Depends,status
 from pera_fastapi.models.schemas import GroupBase
 from sqlalchemy.orm import Session
 from pera_fastapi.models import models
-from pera_fastapi.models.database import engine, get_db,SesssionLocal
-
+from pera_fastapi.models.database import engine, get_db,SessionLocal
+from fastapi_cache.decorator import cache
+from sqlalchemy.future import select
+from fastapi.responses import JSONResponse
 
 DBD = Annotated[Session, Depends(get_db)]
 
@@ -26,7 +37,7 @@ async def create_group(group: GroupBase, db: DBD):
     """
     db_group = models.Group(**group.dict())
     db.add(db_group)
-    db.commit()
+    await db.commit()
     return "Success add group"
 
 
@@ -41,8 +52,10 @@ async def get_all_groups(db: DBD):
     Raises:
         HTTPException: If no groups are found.
     """
-    groups = db.query(models.Group).all()
-    if groups is None:
+    select_group = select(models.Group)
+    result = await db.execute(select_group)
+    groups = result.scalars().all()
+    if not groups:
         raise HTTPException(status_code=404,detail='Groups was not found')
     return groups
 
@@ -61,8 +74,10 @@ async def get_group(id_group: int, db: DBD):
     Raises:
         HTTPException: If the group with the specified ID is not found.
     """
-    group = db.query(models.Group).filter(models.Group.id == id_group).first()
-    if group is None:
+    select_group = select(models.Group).where(models.Group.id == id_group)
+    result = await db.execute(select_group)
+    group = result.scalars().first()
+    if not group:
         raise HTTPException(status_code=404,detail='Group was not found')
     return group
 
@@ -82,12 +97,14 @@ async def delete_group(id_group: int, db: DBD):
     Raises:
     - HTTPException: If the group with the given id is not found in the database.
     """
-    db_group = db.query(models.Group).filter(models.Group.id == id_group).first()
-    if db_group is None:
+    stmt_group = select(models.Group).where(models.Group.id == id_group)
+    result_group = await db.execute(stmt_group)
+    group = result_group.scalars().first()
+    if not group:
         raise HTTPException(status_code=404,detail='Group was not found')
-    db.delete(db_group)
-    db.commit()
-    return "Success delete group - {}".format(id_group)
+    await db.delete(group)
+    await db.commit()
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Success delete group"})
 
 @router.put("/group/{id_group}",status_code=status.HTTP_200_OK)
 async def update_group(id_group: int, group: GroupBase, db: DBD):
@@ -104,11 +121,22 @@ async def update_group(id_group: int, group: GroupBase, db: DBD):
     
     Raises:
     - HTTPException: If the group with the given id is not found in the database.
+
+    Example:
+    ```
+    # Update group with id 1
+    response = await client.put("/group/1", json={"name": "New Group Name"})
+    assert response.status_code == 200
+    assert response.json() == {"message": "Success update group"}
+    ```
     """
-    db_group = db.query(models.Group).filter(models.Group.id == id_group).first()
-    if db_group is None:
+    
+    select_stmt = select(models.Group).where(models.Group.id == id_group)
+    result = await db.execute(select_stmt)
+    db_group = result.scalars().first()
+    if not db_group:
         raise HTTPException(status_code=404,detail='Group was not found')
-    db_group.name = group.name
-    db_group.category = group.category
-    db.commit()
-    return "Success update group - {}".format(id_group)
+    update_group = models.Group(**group.dict(), id=id_group)
+    db.merge(update_group)
+    await db.commit()
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Success update group"})

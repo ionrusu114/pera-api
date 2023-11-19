@@ -58,6 +58,7 @@ class HistoryBase(BaseModel):
     """
     id_group: int
     id_account: int
+    id_group_sender: int
     status: str = Field(default=StatusHistory.pending, description="The status of the history record. Can be 'pending', 'success', 'failed'.")
     created_at: datetime = Field(default=datetime.now(), description="The date and time when the history record was created.")
 
@@ -65,21 +66,21 @@ class StatusGroupSenders(str, Enum):
     """
     Enum class representing the status of a task.
     """
-    active = "active"
-    inactive = "inactive"
-    pending = "pending"
+    finished = "finished"
+    sending = "sending"
+
 
 class GroupSelect(BaseModel):
     """
     Represents a group of senders.
 
     Attributes:
-        id_account (int): The ID of the account associated with the group.
         id_group (int): The ID of the group associated with the group.
+        name (str): The name of the group.
     """
     id_group: int
     name: str
-    category: str = Field(default="MD")
+    
     
 class Group_SendersBase(BaseModel):
     """
@@ -90,8 +91,25 @@ class Group_SendersBase(BaseModel):
         id_group (int): The ID of the group associated with the group.
     """
     id_account: int
-    group_list: List[GroupSelect] = Field(default=[], description="The list of groups associated with the group of senders.")
-    status: str = Field(default=StatusGroupSenders.pending, description="The status of the group of senders. Can be 'pending', 'active', 'inactive'.")
+    group_list: List[GroupSelect] = Field(default={}, description="The list of groups associated with the group of senders.")
+    status: str = Field(default=StatusGroupSenders.sending, description="The status of the group of senders. Can be 'sending', 'finished'.")
+    delay: int = Field(default=12, description="The delay between messages in hours.")
+    created_at: datetime = Field(default=datetime.now(), description="The date and time when the group of senders was created.")
+    # stopped_at: Optional[datetime] = Field(default=None, description="The date and time when the group of senders was stopped.")
+
+class GroupsSendersSelectBase(BaseModel):
+    """
+    Represents a group of senders.
+
+    Attributes:
+        id_account (int): The ID of the account associated with the group.
+        id_group (int): The ID of the group associated with the group.
+    """
+    id_account: int
+    max_executions: int
+    message: str
+    group_list: List[GroupSelect] = Field(default={}, description="The list of groups associated with the group of senders.")
+    status: str = Field(default=StatusGroupSenders.sending, description="The status of the group of senders. Can be 'sending', 'finished'.")
     delay: int = Field(default=12, description="The delay between messages in hours.")
     created_at: datetime = Field(default=datetime.now(), description="The date and time when the group of senders was created.")
     # stopped_at: Optional[datetime] = Field(default=None, description="The date and time when the group of senders was stopped.")

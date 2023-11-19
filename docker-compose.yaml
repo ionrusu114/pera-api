@@ -2,9 +2,6 @@ version: "3.5"
 services:
   fastapi:
     build: .
-    # image: ionrusu114/pera-fastapi:main
-    # image: pera-api:v01
-    # container_name: pera-api
     volumes:
       - api_data:/pera-fastapi/pera_fastapi
     environment:
@@ -13,16 +10,21 @@ services:
       MYSQL_DATABASE: pera-api
       MYSQL_USER: peradmin
       MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
+      MYSQL_PORT: 3306
       MYSQL_HOST: database-pera
-
-
+      REDIS_HOST: redis
+      REDIS_PORT: 5370
+      REDIS_PASSWORD: leonidas1121
+      SECRET_AUTH: SECRET
+    command: ["/bin/bash", "-c", "/code/docker/pera_api.sh"]
     ports:
       - 8070:8070
-    links:
+    depends_on:
       - database-pera
-
-    
-    restart: always # always
+      - redis
+    links:
+      - database-pera 
+    restart: always
   
   database-pera:
     image: mysql
@@ -37,7 +39,6 @@ services:
       - "6033:3306"
     volumes:
       - dbdata:/var/lib/mysql
-
   
   phpmyadmin:
     image: phpmyadmin
@@ -53,9 +54,66 @@ services:
     restart: always
     ports:
       - 8081:80
+    depends_on:
+      - database-pera
 
-    
+  redis:
+    image: redis:latest
+    command: redis-server --port 5370 --requirepass leonidas1121
+    ports:
+      - "5370:5370"
+    volumes:
+      - redis_data:/data
+
+  celery:
+    build: .
+    environment:
+      MAIN_URL: /
+      MYSQL_ROOT_PASSWORD: wQlG5unrYTLT9cTONHcg
+      MYSQL_DATABASE: pera-api
+      MYSQL_USER: peradmin
+      MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
+      MYSQL_PORT: 3306
+      MYSQL_HOST: database-pera
+      REDIS_HOST: redis
+      REDIS_PORT: 5370
+      REDIS_PASSWORD: leonidas1121
+      SECRET_AUTH: SECRET
+    command: ["/bin/bash", "-c", "/code/docker/celery.sh"]
+    volumes:
+      - .:/code
+      - celery_data:/var/lib/celery
+    depends_on:
+      - redis
+      - fastapi
+
+  flower:
+    build: .
+    environment:
+      MAIN_URL: /
+      MYSQL_ROOT_PASSWORD: wQlG5unrYTLT9cTONHcg
+      MYSQL_DATABASE: pera-api
+      MYSQL_USER: peradmin
+      MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
+      MYSQL_PORT: 3306
+      MYSQL_HOST: database-pera
+      REDIS_HOST: redis
+      REDIS_PORT: 5370
+      REDIS_PASSWORD: leonidas1121
+      SECRET_AUTH: SECRET
+    command: ["/bin/bash", "-c", "sleep 10; /code/docker/flower.sh"]
+    ports:
+      - "5555:5555"
+    volumes:
+      - flower_data:/var/lib/flower
+    depends_on:
+      - redis
+      - celery
+
 volumes:
   dbdata:
   api_data:
   phpmyadmin_data:
+  redis_data:
+  celery_data:
+  flower_data:
