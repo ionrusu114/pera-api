@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import DeclarativeMeta,declarative_base
 from sqlalchemy.orm import DeclarativeBase,sessionmaker
 from pera_fastapi.settings import settings
-from sqlalchemy.orm import sessionmaker
 from pera_fastapi.models.models import Role
 
 URL_DATABASE = 'mysql+aiomysql://{}:{}@{}:3306/{}'.format(settings.mysql_user,settings.mysql_password,settings.mysql_host,settings.mysql_database)
@@ -36,7 +35,6 @@ async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
-
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
     yield SQLAlchemyUserDatabase(session, User)

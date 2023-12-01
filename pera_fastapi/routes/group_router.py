@@ -9,21 +9,22 @@ The group router provides the following endpoints:
 - PUT /group/{id_group} - updates a group with the given id in the database.
 """
 from typing import Annotated
-from fastapi import APIRouter, HTTPException,Depends,status
+from fastapi import APIRouter, HTTPException, Depends, status
 from pera_fastapi.models.schemas import GroupBase
 from sqlalchemy.orm import Session
 from pera_fastapi.models import models
-from pera_fastapi.models.database import engine, get_db,SessionLocal
+from pera_fastapi.models.database import engine, get_db, SessionLocal
 from fastapi_cache.decorator import cache
 from sqlalchemy.future import select
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 DBD = Annotated[Session, Depends(get_db)]
 
 router = APIRouter()
 
 
-@router.post("/group/",status_code=status.HTTP_201_CREATED)
+@router.post("/group/", status_code=status.HTTP_201_CREATED)
 async def create_group(group: GroupBase, db: DBD):
     """
     Create a new group in the database.
@@ -34,21 +35,27 @@ async def create_group(group: GroupBase, db: DBD):
 
     Returns:
         str: A success message.
+
+    Raises:
+        HTTPException: If there is an integrity error.
     """
-    db_group = models.Group(**group.dict())
-    db.add(db_group)
-    await db.commit()
-    return "Success add group"
+    try:
+        db_group = models.Group(**group.dict())
+        db.add(db_group)
+        await db.commit()
+        return "Success add group"
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Integrity error")
 
 
-@router.get("/groups/",status_code=status.HTTP_200_OK)
+@router.get("/groups/", status_code=status.HTTP_200_OK)
 async def get_all_groups(db: DBD):
     """
     Retrieve all groups.
 
     Returns:
         List[models.Group]: A list of all groups.
-    
+
     Raises:
         HTTPException: If no groups are found.
     """
@@ -56,10 +63,11 @@ async def get_all_groups(db: DBD):
     result = await db.execute(select_group)
     groups = result.scalars().all()
     if not groups:
-        raise HTTPException(status_code=404,detail='Groups was not found')
+        raise HTTPException(status_code=404, detail='Groups was not found')
     return groups
 
-@router.get("/group/{id_group}",status_code=status.HTTP_200_OK)
+
+@router.get("/group/{id_group}", status_code=status.HTTP_200_OK)
 async def get_group(id_group: int, db: DBD):
     """
     Retrieve a group by ID.
@@ -78,11 +86,11 @@ async def get_group(id_group: int, db: DBD):
     result = await db.execute(select_group)
     group = result.scalars().first()
     if not group:
-        raise HTTPException(status_code=404,detail='Group was not found')
+        raise HTTPException(status_code=404, detail='Group was not found')
     return group
 
 
-@router.delete("/group/{id_group}",status_code=status.HTTP_200_OK)
+@router.delete("/group/{id_group}", status_code=status.HTTP_200_OK)
 async def delete_group(id_group: int, db: DBD):
     """
     Deletes a group with the given id from the database.
@@ -93,7 +101,7 @@ async def delete_group(id_group: int, db: DBD):
 
     Returns:
     - str: A success message indicating the id of the deleted group.
-    
+
     Raises:
     - HTTPException: If the group with the given id is not found in the database.
     """
@@ -101,12 +109,13 @@ async def delete_group(id_group: int, db: DBD):
     result_group = await db.execute(stmt_group)
     group = result_group.scalars().first()
     if not group:
-        raise HTTPException(status_code=404,detail='Group was not found')
+        raise HTTPException(status_code=404, detail='Group was not found')
     await db.delete(group)
     await db.commit()
     return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Success delete group"})
 
-@router.put("/group/{id_group}",status_code=status.HTTP_200_OK)
+
+@router.put("/group/{id_group}", status_code=status.HTTP_200_OK)
 async def update_group(id_group: int, group: GroupBase, db: DBD):
     """
     Updates a group with the given id in the database.
@@ -118,7 +127,7 @@ async def update_group(id_group: int, group: GroupBase, db: DBD):
 
     Returns:
     - str: A success message indicating the id of the updated group.
-    
+
     Raises:
     - HTTPException: If the group with the given id is not found in the database.
 
@@ -130,13 +139,15 @@ async def update_group(id_group: int, group: GroupBase, db: DBD):
     assert response.json() == {"message": "Success update group"}
     ```
     """
-    
-    select_stmt = select(models.Group).where(models.Group.id == id_group)
-    result = await db.execute(select_stmt)
-    db_group = result.scalars().first()
-    if not db_group:
-        raise HTTPException(status_code=404,detail='Group was not found')
-    update_group = models.Group(**group.dict(), id=id_group)
-    db.merge(update_group)
-    await db.commit()
-    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Success update group"})
+    try:
+        select_stmt = select(models.Group).where(models.Group.id == id_group)
+        result = await db.execute(select_stmt)
+        db_group = result.scalars().first()
+        if not db_group:
+            raise HTTPException(status_code=404, detail='Group was not found')
+        update_group = models.Group(**group.dict(), id=id_group)
+        db.merge(update_group)
+        await db.commit()
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Success update group"})
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Integrity error")

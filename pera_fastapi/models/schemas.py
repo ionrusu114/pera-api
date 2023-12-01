@@ -114,6 +114,52 @@ class GroupsSendersSelectBase(BaseModel):
     created_at: datetime = Field(default=datetime.now(), description="The date and time when the group of senders was created.")
     # stopped_at: Optional[datetime] = Field(default=None, description="The date and time when the group of senders was stopped.")
 
+class StatusTasks(str, Enum):
+    """
+    Enum class representing the status of a task.
+    """
+    running = "running"
+    success = "success"
+    stopped = "stopped"
 
+class TasksBase(BaseModel):
+    """
+    Represents a task.
 
+    Attributes:
+        id_group_sender (int): The ID of the group of senders associated with the task.
+        id_account (int): The ID of the account associated with the task.
+        status (str): The status of the task.
+        created_at (str): The date and time when the task was created.
+    """
+    id_group_sender: int
+    task_id: str
+    status: str = Field(default=StatusTasks.running, description="The status of the task. Can be 'running', 'success', 'stopped'.")
 
+class TasksUpdateBase(BaseModel):
+    """
+    Represents a task.
+
+    Attributes:
+        id_group_sender (int): The ID of the group of senders associated with the task.
+        id_account (int): The ID of the account associated with the task.
+        status (str): The status of the task.
+        created_at (str): The date and time when the task was created.
+    """
+    id_group_sender: int
+    task_id: str
+    status: str = Field(default=StatusTasks.running, description="The status of the task. Can be 'running', 'success', 'stopped'.")
+    updated_at: datetime = Field(default=datetime.now(), description="The date and time when the task was updated.")
+    stopped_at: Optional[datetime] = Field(default=None, description="The date and time when the task was stopped.")
+    
+class TaskUpdateStatusBase(BaseModel):
+    """
+    Represents a task.
+
+    Attributes:
+        id_group_sender (int): The ID of the group of senders associated with the task.
+        id_account (int): The ID of the account associated with the task.
+        status (str): The status of the task.
+        created_at (str): The date and time when the task was created.
+    """
+    status: str = Field(default=StatusTasks.running, description="The status of the task. Can be 'running', 'success', 'stopped'.")

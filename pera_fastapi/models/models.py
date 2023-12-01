@@ -7,7 +7,8 @@ from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from pera_fastapi.models.database import Base
 from datetime import datetime
-
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
+from sqlalchemy.orm import DeclarativeBase
 
 metadata = MetaData()
 class Group(Base):
@@ -101,54 +102,31 @@ class Group_Senders(Base):
     created_at = Column(DateTime, default=datetime.now)
     stopped_at = Column(DateTime)
     history = relationship("History", back_populates="group_sender")
+    tasks = relationship("Tasks", back_populates="group_sender")
     
+class User(SQLAlchemyBaseUserTableUUID, Base):
+    metadata = metadata
+    pass
 
-
-
-class Role(Base):
+class Tasks(Base):
     """
-    A class representing a role in the system.
+    Represents a task in the database.
 
     Attributes:
-    -----------
-    id : int
-        The unique identifier for the role.
-    name : str
-        The name of the role.
-    permissions : dict
-        The permissions associated with the role.
+        id (int): The unique identifier for the task.
+        id_account (int): The ID of the account associated with the task.
+        id_group_sender (int): The ID of the group sender associated with the task.
+        status (str): The status of the task.
+        created_at (str): The date and time the task was created.
     """
-    __tablename__ = 'role'
+    __tablename__ = 'tasks'
     metadata = metadata
     id = Column(Integer, primary_key=True)
-    name = Column(String(60), nullable=False)
-    permissions = Column(JSON, nullable=True)
-    users = relationship("User", back_populates="role")
-
-class User(Base):
-    """
-    Represents a user in the system.
-
-    Attributes:
-        id (int): The unique identifier for the user.
-        email (str): The email address associated with the user.
-        username (str): The username associated with the user.
-        registered_at (str): The date and time when the user was registered.
-        role_id (int): The identifier for the role associated with the user.
-        hashed_password (str): The hashed password associated with the user.
-        is_active (bool): Whether the user is active or not.
-        is_superuser (bool): Whether the user is a superuser or not.
-        is_verified (bool): Whether the user is verified or not.
-    """
-    __tablename__ = 'user'
-    metadata = metadata
-    id = Column(Integer, primary_key=True)
-    email = Column(String(length=1024), nullable=False)
-    username = Column(String(length=1024), nullable=False)
-    registered_at = Column(TIMESTAMP, default=datetime.utcnow)
-    role_id = Column(Integer, ForeignKey(Role.id))
-    role = relationship("Role", back_populates="users")
-    hashed_password = Column(String(length=1024), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_superuser = Column(Boolean, default=False, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
+    id_group_sender = Column(Integer, ForeignKey('group_senders.id'))
+    group_sender = relationship("Group_Senders", back_populates="tasks")
+    task_id = Column(String(250))
+    status = Column(String(30))
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime)
+    stopped_at = Column(DateTime)
+    

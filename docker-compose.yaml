@@ -1,21 +1,11 @@
 version: "3.5"
 services:
   fastapi:
-    build: .
+    image: pera-fastapi:v01
     volumes:
       - api_data:/pera-fastapi/pera_fastapi
-    environment:
-      MAIN_URL: /
-      MYSQL_ROOT_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_DATABASE: pera-api
-      MYSQL_USER: peradmin
-      MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_PORT: 3306
-      MYSQL_HOST: database-pera
-      REDIS_HOST: redis
-      REDIS_PORT: 5370
-      REDIS_PASSWORD: leonidas1121
-      SECRET_AUTH: SECRET
+    env_file:
+      - .env
     command: ["/bin/bash", "-c", "/code/docker/pera_api.sh"]
     ports:
       - 8070:8070
@@ -30,11 +20,8 @@ services:
     image: mysql
     container_name: pera-db
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_DATABASE: pera-api
-      MYSQL_USER: peradmin
-      MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
+    env_file:
+      - .env
     ports:
       - "6033:3306"
     volumes:
@@ -66,20 +53,10 @@ services:
       - redis_data:/data
 
   celery:
-    build: .
-    environment:
-      MAIN_URL: /
-      MYSQL_ROOT_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_DATABASE: pera-api
-      MYSQL_USER: peradmin
-      MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_PORT: 3306
-      MYSQL_HOST: database-pera
-      REDIS_HOST: redis
-      REDIS_PORT: 5370
-      REDIS_PASSWORD: leonidas1121
-      SECRET_AUTH: SECRET
-    command: ["/bin/bash", "-c", "/code/docker/celery.sh"]
+    image: pera-fastapi:v01
+    env_file:
+      - .env
+    command: ["/bin/bash", "-c", "/code/docker/celery.sh --concurrency=2 --max-tasks-per-child=100"]
     volumes:
       - .:/code
       - celery_data:/var/lib/celery
@@ -88,19 +65,9 @@ services:
       - fastapi
 
   flower:
-    build: .
-    environment:
-      MAIN_URL: /
-      MYSQL_ROOT_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_DATABASE: pera-api
-      MYSQL_USER: peradmin
-      MYSQL_PASSWORD: wQlG5unrYTLT9cTONHcg
-      MYSQL_PORT: 3306
-      MYSQL_HOST: database-pera
-      REDIS_HOST: redis
-      REDIS_PORT: 5370
-      REDIS_PASSWORD: leonidas1121
-      SECRET_AUTH: SECRET
+    image: pera-fastapi:v01
+    env_file:
+      - .env
     command: ["/bin/bash", "-c", "sleep 10; /code/docker/flower.sh"]
     ports:
       - "5555:5555"

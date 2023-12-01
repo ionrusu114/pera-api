@@ -53,32 +53,6 @@ class DatabaseTask(Task):
             self._session = AsyncSession(engine_async)
         return self._session
 
-
-@shared_task(bind=True, base=DatabaseTask, name="tasks.send_messages")
-def send_messages(
-    self,
-    account: List,
-    max_executions: int,
-    message: str,
-    group_list: List[Dict[int, str]], 
-    id_group_senders: int,
-    period: int,
-    ):
-    """
-    This function sends messages to a list of groups periodically.
-    :param account: A list containing the telegram_id, telegram_hash, id, and phone of the account.
-    :type account: List
-    :param max_executions: The maximum number of times the function will execute.
-    :type max_executions: int
-    :param message: The message to be sent.
-    :type message: str
-    :param group_list: A list of dictionaries containing the id and name of the groups to which the message will be sent.
-    :type group_list: List[Dict[int, str]]
-    :param id_group_senders: The id of the group of senders.
-    :type id_group_senders: int
-    :param period: The time interval between message sending in hours.
-    :type period: int
-    """
 @shared_task(bind=True, base=DatabaseTask, name="tasks.send_messages")
 def send_messages(
     self,
@@ -133,7 +107,8 @@ def send_messages(
         nonlocal max_executions
         while max_executions >= 1:
             await main()
-            await asyncio.sleep(period*60*60) # 2 hours sleep
+            # await asyncio.sleep(period*60*60) # 2 hours sleep
+            await asyncio.sleep(period) # 2 hours sleep
             max_executions -= 1
 
     loop = asyncio.new_event_loop()

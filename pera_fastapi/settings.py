@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     redis_password: str
     
     secret_auth: str
+    api_key: str
     
     
 

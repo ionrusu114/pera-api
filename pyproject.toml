@@ -21,6 +21,7 @@ celery = "^5.3.5"
 flower = "^2.0.1"
 fastapi-cache2 = {extras = ["redis"], version = "^0.2.1"}
 gunicorn = "^21.2.0"
+python-jose = "3.3.0"
 
 
 [tool.poetry.group.test.dependencies]

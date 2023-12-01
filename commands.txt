@@ -1,4 +1,4 @@
-export MAIN_URL=/ && export MYSQL_HOST=localhost && export MYSQL_ROOT_PASSWORD=wQlG5unrYTLT9cTONHcg && export MYSQL_USER=peradmin && export MYSQL_PASSWORD=wQlG5unrYTLT9cTONHcg && export MYSQL_DATABASE=pera-api && export REDIS_HOST=localhost && export REDIS_PORT=6379 && export REDIS_PASSWORD=leonidas1121 && export SECRET_AUTH=SECRET && export MYSQL_PORT=3306
+export MAIN_URL=/ && export MYSQL_HOST=localhost && export MYSQL_ROOT_PASSWORD=wQlG5unrYTLT9cTONHcg && export MYSQL_USER=peradmin && export MYSQL_PASSWORD=wQlG5unrYTLT9cTONHcg && export MYSQL_DATABASE=pera-api && export REDIS_HOST=localhost && export REDIS_PORT=6379 && export REDIS_PASSWORD=leonidas1121 && export SECRET_AUTH=SECRET && export MYSQL_PORT=3306 && export API_KEY=f47d4a2c-24cf-4745-937e-620a5963c0b8
 
 poetry run uvicorn pera_fastapi.main:app --reload --port 8070
 
@@ -24,3 +24,9 @@ celery -A pera_fastapi.tasks.tasks:celery [worker | beat | flower] --loglevel=IN
 celery -A pera_fastapi.tasks.tasks:celery worker --loglevel=info -c 4
 celery -A pera_fastapi.tasks.tasks:celery flower --loglevel=info
 celery -A pera_fastapi.tasks.tasks:celery beat --loglevel=info
+
+  A1  =  Process(target=Account, args=("24491467","0ba12617a8de4ecc435b34d0a72842f2","+40756754066")) # My simple account
+  # A2  =  Process(target=Account, args=("27284716","1117eb19dc0b10c6f521f37e3542eaea","+37360361615")) # Safecar Trans
+  # A3  =  Process(target=Account, args=("21053751","1fd3190da89adf34db18acf2a1e4fc30","+40784112735")) # The master premium account
+
+  API_KEY=f47d4a2c-24cf-4745-937e-620a5963c0b8

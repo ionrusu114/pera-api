@@ -8,27 +8,36 @@ from fastapi import APIRouter,BackgroundTasks, Depends,HTTPException, status,Req
 from typing import Dict, List,Annotated
 from fastapi_cache.decorator import cache
 import importlib
-from pera_fastapi.auth.database import User
-from pera_fastapi.models.schemas import Group_SendersBase,GroupsSendersSelectBase
+# from pera_fastapi.auth.database import User
+from pera_fastapi.models.schemas import Group_SendersBase,GroupsSendersSelectBase,StatusTasks,TasksBase,TaskUpdateStatusBase
 from pera_fastapi.models.database import get_db
 from pera_fastapi.routes.account_router import get_account
 from pera_fastapi.routes.group_senders_router import create_group_senders
+from pera_fastapi.routes.tasks_router import create_task,update_task_work
 from sqlalchemy.future import select
 from pera_fastapi.models import models
 from sqlalchemy.orm import Session
 from .tasks import send_messages
 from fastapi.responses import JSONResponse
 import logging
+from .tasks import celery
 
 
 DBD = Annotated[Session, Depends(get_db)]
 
 router = APIRouter(prefix="/api/telegram/tasks", tags=["tasks"])
 
+@router.post("/stop/{task_id}")
+async def stop_task(task_id: str, db: DBD):
+    TaskStop = TaskUpdateStatusBase(
+        status = StatusTasks.stopped
+    )
+    await update_task_work(task_id, TaskStop, db)
+    celery.control.revoke(task_id, terminate=True)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Task stopped"})
+
 @router.post("/send",status_code=status.HTTP_201_CREATED)
 async def run_sender_messages(
-        # max_executions: int,
-        # message: str,
         group_senders: GroupsSendersSelectBase,
         db: DBD,
     ):
@@ -42,6 +51,10 @@ async def run_sender_messages(
     Returns:
     - JSONResponse: A JSON response indicating whether the task was successfully added or not.
     """
+    async def cached_create_task(task, db):
+        return await create_task(task, db)
+    
+    
     async def cached_create_group_senders(group_senders, db):
         return await create_group_senders(group_senders, db)
 
@@ -61,7 +74,7 @@ async def run_sender_messages(
     max_executions = group_senders.max_executions
     message = group_senders.message
     
-    send_messages.delay(
+    task = send_messages.delay(
         account_dict,
         max_executions,
         message,
@@ -70,4 +83,12 @@ async def run_sender_messages(
         group_senders.delay,        
     )
     
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": "Success add task"})
+    task_data = TasksBase(
+        id_group_sender=id_group_senders,
+        task_id=str(task.id),
+        status=StatusTasks.running,
+    )
+    created_task = await cached_create_task(task_data, db)
+    
+    
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": "Success add task", "task_id": str(task.id)})

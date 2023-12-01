@@ -1,12 +1,9 @@
 """
 This module contains the API routes for managing group senders.
 """
-
-# FILEPATH: /home/ionrusu114api/htdocs/www.api.ionrusu114.me/pera-fastapi/pera_fastapi/routes/group_senders_router.py
-
-from typing import Dict, List,Annotated
+from typing import Dict, List, Annotated
 from fastapi import APIRouter, HTTPException, Depends, status
-from pera_fastapi.models.schemas import Group_SendersBase,GroupsSendersSelectBase
+from pera_fastapi.models.schemas import Group_SendersBase, GroupsSendersSelectBase
 from sqlalchemy.orm import Session
 from pera_fastapi.models import models
 from pera_fastapi.models.database import get_db
@@ -28,11 +25,14 @@ async def create_group_senders(group_senders: GroupsSendersSelectBase, db: DBD):
     Returns:
         Dict[str, Union[str, int]]: A success message and the ID of the created group_senders.
     """
-    db_group_senders = models.Group_Senders(**group_senders.dict())
-    db.add(db_group_senders)
-    await db.commit()
-    await db.refresh(db_group_senders)
-    return {"message": "Success add group_senders", "id": db_group_senders.id}
+    try:
+        db_group_senders = models.Group_Senders(**group_senders.dict())
+        db.add(db_group_senders)
+        await db.commit()
+        await db.refresh(db_group_senders)
+        return {"message": "Success add group_senders", "id": db_group_senders.id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/group_senders/", status_code=status.HTTP_200_OK)
 async def get_all_group_senders(db: DBD):
@@ -45,12 +45,15 @@ async def get_all_group_senders(db: DBD):
     Raises:
         HTTPException: If no group_senders are found.
     """
-    select_group_senders = select(models.Group_Senders)
-    result = await db.execute(select_group_senders)
-    group_senders = result.scalars().all()
-    if not group_senders:
-        raise HTTPException(status_code=404, detail='Group_senders was not found')
-    return group_senders
+    try:
+        select_group_senders = select(models.Group_Senders)
+        result = await db.execute(select_group_senders)
+        group_senders = result.scalars().all()
+        if not group_senders:
+            raise HTTPException(status_code=404, detail='Group_senders was not found')
+        return group_senders
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/group_senders/{id_group_senders}", status_code=status.HTTP_200_OK)
 async def get_group_senders(id_group_senders: int, db: DBD):
@@ -67,13 +70,15 @@ async def get_group_senders(id_group_senders: int, db: DBD):
     Raises:
         HTTPException: If the group_senders with the specified ID is not found.
     """
-    select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id_group_senders == id_group_senders)
-    result = await db.execute(select_group_senders)
-    group_senders = result.scalars().first()
-    if not group_senders:
-        raise HTTPException(status_code=404, detail='Group_senders was not found')
-    return group_senders
- 
+    try:
+        select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id_group_senders == id_group_senders)
+        result = await db.execute(select_group_senders)
+        group_senders = result.scalars().first()
+        if not group_senders:
+            raise HTTPException(status_code=404, detail='Group_senders was not found')
+        return group_senders
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/group_senders/{id_group_senders}", status_code=status.HTTP_200_OK)
 async def update_group_senders(id_group_senders: int, group_senders: GroupsSendersSelectBase, db: DBD):
@@ -91,16 +96,18 @@ async def update_group_senders(id_group_senders: int, group_senders: GroupsSende
     Raises:
         HTTPException: If the group_senders with the specified ID is not found.
     """
-    select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id == id_group_senders)
-    result = await db.execute(select_group_senders)
-    db_group_senders = result.scalars().first()
-    if not db_group_senders:
-        raise HTTPException(status_code=404, detail='Group_senders was not found')
-    update_group_senders = models.Group_Senders(**group_senders.dict(), id=id_group_senders)
-    await db.merge(update_group_senders)
-    await db.commit()
-    return JSONResponse(content={"message": "Success update group_senders"}, status_code=status.HTTP_200_OK)
-    
+    try:
+        select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id == id_group_senders)
+        result = await db.execute(select_group_senders)
+        db_group_senders = result.scalars().first()
+        if not db_group_senders:
+            raise HTTPException(status_code=404, detail='Group_senders was not found')
+        update_group_senders = models.Group_Senders(**group_senders.dict(), id=id_group_senders)
+        await db.merge(update_group_senders)
+        await db.commit()
+        return JSONResponse(content={"message": "Success update group_senders"}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/group_senders/{id_group_senders}", status_code=status.HTTP_200_OK)
 async def delete_group_senders(id_group_senders: int, db: DBD):
@@ -117,14 +124,17 @@ async def delete_group_senders(id_group_senders: int, db: DBD):
     Raises:
         HTTPException: If the group_senders with the specified ID is not found.
     """
-    select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id_group_senders == id_group_senders)
-    result = await db.execute(select_group_senders)
-    db_group_senders = result.scalars().first()
-    if not db_group_senders:
-        raise HTTPException(status_code=404, detail='Group_senders was not found')
-    db.delete(db_group_senders)
-    await db.commit()
-    return JSONResponse(content={"message": "Success delete group_senders"}, status_code=status.HTTP_200_OK)
+    try:
+        select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id_group_senders == id_group_senders)
+        result = await db.execute(select_group_senders)
+        db_group_senders = result.scalars().first()
+        if not db_group_senders:
+            raise HTTPException(status_code=404, detail='Group_senders was not found')
+        db.delete(db_group_senders)
+        await db.commit()
+        return JSONResponse(content={"message": "Success delete group_senders"}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/group_senders/account/{id_account}", status_code=status.HTTP_200_OK)
 async def get_group_senders_by_account(id_account: int, db: DBD):
@@ -141,9 +151,12 @@ async def get_group_senders_by_account(id_account: int, db: DBD):
     Raises:
         HTTPException: If no group_senders are found.
     """
-    select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id_account == id_account)
-    result = await db.execute(select_group_senders)
-    group_senders = result.scalars().all()
-    if not group_senders:
-        raise HTTPException(status_code=404, detail='Group_senders was not found')
-    return group_senders
+    try:
+        select_group_senders = select(models.Group_Senders).where(models.Group_Senders.id_account == id_account)
+        result = await db.execute(select_group_senders)
+        group_senders = result.scalars().all()
+        if not group_senders:
+            raise HTTPException(status_code=404, detail='Group_senders was not found')
+        return group_senders
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

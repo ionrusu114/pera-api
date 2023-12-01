@@ -9,11 +9,11 @@ Functions:
 - delete_history: Delete a history by ID.
 """
 from typing import Annotated
-from fastapi import APIRouter, HTTPException,Depends,status
+from fastapi import APIRouter, HTTPException, Depends, status
 from pera_fastapi.models.schemas import HistoryBase
 from sqlalchemy.orm import Session
 from pera_fastapi.models import models
-from pera_fastapi.models.database import engine, get_db,SessionLocal
+from pera_fastapi.models.database import engine, get_db, SessionLocal
 from fastapi_cache.decorator import cache
 from sqlalchemy.future import select
 from fastapi.responses import JSONResponse
@@ -108,7 +108,11 @@ async def update_history(id_history: int, history: HistoryBase, db: DBD):
         raise HTTPException(status_code=404,detail='History was not found')
     update_history = models.History(**history.dict(), id=id_history)
     db.merge(update_history)
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="An error occurred while committing the transaction.") from e
     return update_history
 
 
@@ -133,7 +137,11 @@ async def delete_history(id_history: int, db: DBD):
     if db_history is None:
         raise HTTPException(status_code=404,detail='History was not found')
     db.delete(db_history)
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="An error occurred while committing the transaction.") from e
     return JSONResponse(content={"message": "Success delete history"}, status_code=status.HTTP_200_OK)
     
 @router.get("/history/{id_history}/group",status_code=status.HTTP_200_OK)
@@ -201,11 +209,3 @@ async def get_history_group_senders(id_history: int, db: DBD):
     if not history:
         raise HTTPException(status_code=404,detail='History was not found')
     return history.group_senders
-
-
-
-
-
-
-
-
