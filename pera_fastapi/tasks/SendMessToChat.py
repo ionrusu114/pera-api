@@ -29,40 +29,9 @@ import asyncio
 from pera_fastapi.settings import settings
 from typing import Dict, List,Annotated
 from pera_fastapi.routes.history_routes import create_history
+import asyncio
+from .requests import call_create_history
 
-URL_DATABASE = 'mysql+aiomysql://{}:{}@{}:3306/{}'.format(settings.mysql_user,settings.mysql_password,settings.mysql_host,settings.mysql_database)
-engine_async = create_async_engine(URL_DATABASE)
-
-async def addHistory(group_id, account_id, id_group_sender):
-    """
-    Adds a new history record to the database.
-
-    Args:
-        group_id (int): The ID of the group.
-        account_id (int): The ID of the account.
-        id_group_sender (int): The ID of the group sender.
-
-    Raises:
-        HTTPException: If an error occurs while committing the transaction.
-
-    Returns:
-        None
-    """
-    session = AsyncSession(engine_async)
-    try:
-        history = HistoryBase(
-            id_group=group_id,
-            id_account=account_id,
-            id_group_sender=id_group_sender,
-            status=StatusHistory.success,
-            created_at=datetime.now(),
-        )
-        try:
-            await create_history(history, session)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="An error occurred while committing the transaction.") from e
-    finally:
-        await session.close()
 
 async def send_message(client: TelegramClient, group_name: str, group_id: int, account_id: int, id_group_sender: int, message: str):
     """
@@ -84,9 +53,25 @@ async def send_message(client: TelegramClient, group_name: str, group_id: int, a
     """
     group = await client.get_entity(group_name)
     try:
-        await client(SendMessageRequest(peer=InputPeerChannel(group.id, group.access_hash), message=message))
-        await addHistory(group_id, account_id, id_group_sender)
-        print('Message sent to', group_name)
+        # await client(SendMessageRequest(peer=InputPeerChannel(group.id, group.access_hash), message=message))
+        await client.send_message(
+            entity=InputPeerChannel(group.id, group.access_hash),
+            message=message,
+            parse_mode='html',
+        )
+
+        history_json = {
+            "id_group": group_id,
+            "id_account": account_id,
+            "id_group_sender": id_group_sender,
+            "status": StatusHistory.success,
+            "created_at": str(datetime.now()),
+        }
+        print(f'history_json: {history_json}')
+        rs_history = call_create_history(history_json)
+        print(f'rs_history: {rs_history}')
+
+        
     except PeerFloodError:
         print('Error: Too many requests')
 
@@ -107,17 +92,25 @@ async def Loop_Message(account_id: int, api_id: int, api_hash: str, phone_number
     Returns:
         None
     """
-    await client.connect()
-    if not await client.is_user_authorized():
-        code = await client.send_code_request(phone_number)
-        print(f'Code: {code}')
-        await client.sign_in(phone_number, input('Enter the code: '))
-    for group in groups:
-        print(f'group: {group}')
-        await send_message(client, group.get('name'), group.get('id_group'), account_id, id_group_sender, message)
-        await asyncio.sleep(5)
+    flag_history_status = False
+    group_name = ""
+    
+    try:
+        # await client.connect()
+        flag_history_status = True
+        for group in groups:
+            print(f'group: {group}')
+            await asyncio.sleep(3)
+            await send_message(client, group.get('name'), group.get('id_group'), account_id, id_group_sender, message)
+            await asyncio.sleep(3)
+            print('Message sent to', group_name)
+        await client.disconnect()
+    except Exception as e:
+        flag_history_status = False
+        print(f"An error occurred: Loop_Message -> {e}")
+    
 
-async def Sender(api_id: int, api_hash: str, phone_number: str, groups: List[Dict[int, str]], id_group_sender: int, id_account: int, message: str):
+async def Sender(api_id: int, api_hash: str, phone_number: str, groups: List[Dict[int, str]], id_group_sender: int, id_account: int, message: str, ):
     """
     Sends a message to a list of Telegram groups using the specified Telegram API credentials.
 
@@ -133,11 +126,37 @@ async def Sender(api_id: int, api_hash: str, phone_number: str, groups: List[Dic
     Returns:
         str: A string indicating the success of the message sending process.
     """
-    client = TelegramClient(f'{phone_number}.session', api_id, api_hash)
+    client = TelegramClient(phone_number, api_id, api_hash)
+
+    await client.connect()
+    if not await client.is_user_authorized():
+        code = await client.send_code_request(phone_number)
+        print(f'Code: {code}')
+        await client.sign_in(phone_number, input('Enter the code: '))
     try:
         await Loop_Message(id_account, api_id, api_hash, phone_number, groups, id_group_sender, client, message)
+    except Exception as e:
+        print(f"An error occurred: Sender interior -> {e}")
     finally:
         await client.disconnect()
     return "Success"
 
+# async def CreateSessionsAccountsForTelegram(api_id, api_hash, phone_number):
+#     client = TelegramClient(phone_number, api_id, api_hash)
+#     await client.connect()
+#     if not await client.is_user_authorized():
+#         code = await client.send_code_request(phone_number)
+#         print(f'Code: {code}')
+#         await client.sign_in(phone_number, input('Enter the code: '))
+#     else :
+#         print("Already authorized")
+#     await client.disconnect()
+#     return client
 
+# # CreateSessionsAccountsForTelegram(21053751,"1fd3190da89adf34db18acf2a1e4fc30", "+40784112735")
+
+# loop = asyncio.get_event_loop()
+# # loop.run_until_complete(CreateSessionsAccountsForTelegram(21053751,"1fd3190da89adf34db18acf2a1e4fc30", "+40784112735"))
+# loop.run_until_complete(CreateSessionsAccountsForTelegram(27284716,"1117eb19dc0b10c6f521f37e3542eaea", "+37360361615")) # Safecar
+# # loop.run_until_complete(CreateSessionsAccountsForTelegram(21053751,"1fd3190da89adf34db18acf2a1e4fc30", "+40784112735"))
+# # loop.run_until_complete(CreateSessionsAccountsForTelegram(21053751,"1fd3190da89adf34db18acf2a1e4fc30", "+40784112735"))

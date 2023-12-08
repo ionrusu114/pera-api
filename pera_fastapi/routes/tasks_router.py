@@ -1,7 +1,7 @@
 """ This module contains the routes for the tasks. """
 
 from typing import Dict, List, Annotated
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status,WebSocket
 from pera_fastapi.models.schemas import TasksBase, TasksUpdateBase,TaskUpdateStatusBase
 from sqlalchemy.orm import Session
 from pera_fastapi.models import models
@@ -47,6 +47,30 @@ async def get_all_tasks(db: DBD):
     except IntegrityError:
         raise HTTPException(status_code=400, detail='Database integrity constraint violated')
 
+@router.get("/tasks/count", status_code=status.HTTP_200_OK)
+async def get_all_tasks_count(db: DBD):
+    try:
+        select_tasks = select(models.Tasks)
+        result = await db.execute(select_tasks)
+        tasks = result.scalars().all()
+        if not tasks:
+            raise HTTPException(status_code=404, detail='Tasks was not found')
+        return len(tasks)
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail='Database integrity constraint violated')
+
+@router.get("/tasks/{page}/{perPage}", status_code=status.HTTP_200_OK)
+async def get_all_tasks_paginate(page: int, perPage: int, db: DBD):
+    try:
+        select_tasks = select(models.Tasks).order_by(models.Tasks.id.desc())
+        result = await db.execute(select_tasks.offset((page - 1) * perPage).limit(perPage))
+        tasks = result.scalars().all()
+        if not tasks:
+            raise HTTPException(status_code=404, detail='Tasks was not found')
+        return tasks
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail='Database integrity constraint violated')
+
 @router.get("/task/{id_task}", status_code=status.HTTP_200_OK)
 async def get_task(id_task: int, db: DBD):
     try:
@@ -58,6 +82,20 @@ async def get_task(id_task: int, db: DBD):
         return group_task
     except IntegrityError:
         raise HTTPException(status_code=400, detail='Database integrity constraint violated')
+
+@router.get("/task/{id_group_sender}/group_sender", status_code=status.HTTP_200_OK)
+async def get_task_by_group_sender(id_group_sender: int, db: DBD):
+    """ Get all tasks by group sender id """
+    try:
+        select_task = select(models.Tasks).where(models.Tasks.id_group_sender == id_group_sender)
+        result = await db.execute(select_task)
+        group_task = result.scalars().first()
+        if not group_task:
+            raise HTTPException(status_code=404, detail='Task was not found')
+        return group_task.task_id
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail='Database integrity constraint violated')
+
 
 @router.put("/tasks/{id}", status_code=status.HTTP_200_OK)
 async def update_task(id: int, task: TasksUpdateBase, db: DBD):

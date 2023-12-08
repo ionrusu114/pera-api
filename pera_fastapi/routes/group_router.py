@@ -66,6 +66,41 @@ async def get_all_groups(db: DBD):
         raise HTTPException(status_code=404, detail='Groups was not found')
     return groups
 
+@router.get("/groups/{page}/{perPage}", status_code=status.HTTP_200_OK)
+async def get_all_groups_paginate(page: int, perPage: int, db: DBD):
+    """
+    Retrieve all groups.
+
+    Returns:
+        List[models.Group]: A list of all groups.
+
+    Raises:
+        HTTPException: If no groups are found.
+    """
+    select_group = select(models.Group).limit(perPage).offset((page-1)*perPage)
+    result = await db.execute(select_group)
+    groups = result.scalars().all()
+    if not groups:
+        raise HTTPException(status_code=404, detail='Groups was not found')
+    return groups
+
+@router.get("/groups/count", status_code=status.HTTP_200_OK)
+async def get_all_groups_count(db: DBD):
+    """
+    Retrieve all groups.
+
+    Returns:
+        List[models.Group]: A list of all groups.
+
+    Raises:
+        HTTPException: If no groups are found.
+    """
+    select_group = select(models.Group)
+    result = await db.execute(select_group)
+    groups = result.scalars().all()
+    if not groups:
+        raise HTTPException(status_code=404, detail='Groups was not found')
+    return len(groups)
 
 @router.get("/group/{id_group}", status_code=status.HTTP_200_OK)
 async def get_group(id_group: int, db: DBD):
@@ -146,7 +181,7 @@ async def update_group(id_group: int, group: GroupBase, db: DBD):
         if not db_group:
             raise HTTPException(status_code=404, detail='Group was not found')
         update_group = models.Group(**group.dict(), id=id_group)
-        db.merge(update_group)
+        await db.merge(update_group)
         await db.commit()
         return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Success update group"})
     except IntegrityError:

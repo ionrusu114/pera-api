@@ -122,7 +122,7 @@ async def update_account(id_account: int, account: AccountBase, db: DBD):
         if db_account is None:
             raise HTTPException(status_code=404, detail='Account was not found')
         update_account = models.Account(**account.dict(), id=id_account)
-        db.merge(update_account)
+        await db.merge(update_account)
         await db.commit()
         return JSONResponse(content={"message": "Success update account"}, status_code=status.HTTP_200_OK)
     except IntegrityError:
@@ -137,10 +137,9 @@ async def update_account_status(id_account: int, account: StatusAccount, db: DBD
         if db_account is None:
             raise HTTPException(status_code=404, detail='Account was not found')
 
-        # Actualizează starea contului direct
         db_account.status = account.value
 
-        db.merge(db_account)
+        await db.merge(db_account)
         await db.commit()
         return JSONResponse(content={"message": "Success update account"}, status_code=status.HTTP_200_OK)
     except IntegrityError:
@@ -176,6 +175,36 @@ async def get_account_history(id_account: int, db: DBD):
     except IntegrityError:
         raise HTTPException(status_code=400, detail='Database integrity constraint violated')
 
+@router.get("/account/{id_account}/tasks", status_code=status.HTTP_200_OK)
+async def get_account_tasks(id_account: int, db: DBD):
+    """
+    Returns the tasks of an account with the given id_account.
+
+    Args:
+    - id_account (int): The id of the account to retrieve the tasks for.
+    - db (DBD): The database session dependency.
+
+    Returns:
+    - list[models.Tasks]: A list of tasks objects associated with the account.
+
+    Raises:
+    - HTTPException(404): If the account with the given id_account is not found.
+    """
+    try:
+        select_account = select(models.Account).where(models.Account.id == id_account)
+        result = await db.execute(select_account)
+        account = result.scalars().first()
+        if not account:
+            raise HTTPException(status_code=404, detail='Account was not found')
+
+        select_tasks = select(models.Tasks).where(models.Tasks.id_group_sender == id_account)
+        result = await db.execute(select_tasks)
+        tasks = result.scalars().all()
+
+        return tasks
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail='Database integrity constraint violated')
+
 @router.get("/account/{id_account}/group_senders", status_code=status.HTTP_200_OK)
 async def get_account_group_senders(id_account: int, db: DBD):
     """
@@ -203,6 +232,38 @@ async def get_account_group_senders(id_account: int, db: DBD):
         group_senders = result.scalars().all()
 
         return group_senders
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail='Database integrity constraint violated')
+
+@router.get("/account/group_senders/{id_group_sender}", status_code=status.HTTP_200_OK)
+async def get_account_by_group_sender(id_group_sender: int, db: DBD):
+    """
+    Retrieve an account by group sender ID.
+
+    Args:
+        id_group_sender (int): The ID of the group sender to retrieve the account for.
+        db (DBD): The database dependency.
+
+    Returns:
+        models.Account: The account associated with the given group sender ID.
+
+    Raises:
+        HTTPException: If the group sender with the given ID is not found.
+    """
+    try:
+        select_group_sender = select(models.Group_Senders).where(models.Group_Senders.id == id_group_sender)
+        result = await db.execute(select_group_sender)
+        group_sender = result.scalars().first()
+        if not group_sender:
+            raise HTTPException(status_code=404, detail='Group sender was not found')
+
+        select_account = select(models.Account).where(models.Account.id == group_sender.id_account)
+        result = await db.execute(select_account)
+        account = result.scalars().first()
+        if not account:
+            raise HTTPException(status_code=404, detail='Account was not found')
+
+        return account
     except IntegrityError:
         raise HTTPException(status_code=400, detail='Database integrity constraint violated')
 

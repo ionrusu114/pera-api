@@ -17,6 +17,8 @@ from pera_fastapi.models.database import engine, get_db, SessionLocal
 from fastapi_cache.decorator import cache
 from sqlalchemy.future import select
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+
 
 
 DBD = Annotated[Session, Depends(get_db)]
@@ -35,14 +37,17 @@ async def create_history(history: HistoryBase, db: DBD):
     Returns:
         str: A success message.
     """
-    db_history = models.History(**history.dict())
-    db.add(db_history)
+    # print(history.dict())
     try:
+        db_history = models.History(**history.dict())
+        db.add(db_history)
         await db.commit()
+        
+        return JSONResponse(content={"message": "Success add history"}, status_code=status.HTTP_201_CREATED)
+        
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="An error occurred while committing the transaction.") from e
-    return JSONResponse(content={"message": "Success add history"}, status_code=status.HTTP_201_CREATED)
+        raise HTTPException(status_code=400, detail="Integrity error")
 
 @router.get("/histories/",status_code=status.HTTP_200_OK)
 async def get_all_histories(db: DBD):
@@ -166,13 +171,13 @@ async def get_history_group(id_history: int, db: DBD):
         raise HTTPException(status_code=404,detail='History was not found')
     return history.group
 
-@router.get("/history/{id_history}/account",status_code=status.HTTP_200_OK)
-async def get_history_account(id_history: int, db: DBD):
+@router.get("/history/{id_account}/accounts",status_code=status.HTTP_200_OK)
+async def get_history_account(id_account: int, db: DBD):
     """
     Retrieve the account of an history by ID.
 
     Args:
-        id_history (int): The ID of the history to retrieve.
+        id_account (int): The ID of the history to retrieve.
         db (DBD): The database dependency.
 
     Returns:
@@ -181,20 +186,20 @@ async def get_history_account(id_history: int, db: DBD):
     Raises:
         HTTPException: If the history with the specified ID is not found.
     """
-    select_history = select(models.History).where(models.History.id == id_history)
+    select_history = select(models.History).where(models.History.id_account == id_account)
     result = await db.execute(select_history)
-    history = result.scalars().first()
+    history = result.scalars().all()
     if not history:
         raise HTTPException(status_code=404,detail='History was not found')
-    return history.account
+    return history
 
-@router.get("/history/{id_history}/group_senders",status_code=status.HTTP_200_OK)
-async def get_history_group_senders(id_history: int, db: DBD):
+@router.get("/history/{id_group_sender}/group_senders",status_code=status.HTTP_200_OK)
+async def get_history_group_senders(id_group_sender: int, db: DBD):
     """
     Retrieve the group_senders of an history by ID.
 
     Args:
-        id_history (int): The ID of the history to retrieve.
+        id_group_sender (int): The ID of the history to retrieve.
         db (DBD): The database dependency.
 
     Returns:
@@ -203,9 +208,9 @@ async def get_history_group_senders(id_history: int, db: DBD):
     Raises:
         HTTPException: If the history with the specified ID is not found.
     """
-    select_history = select(models.History).where(models.History.id == id_history)
+    select_history = select(models.History).where(models.History.id_group_sender == id_group_sender)
     result = await db.execute(select_history)
-    history = result.scalars().first()
+    history = result.scalars().all()
     if not history:
         raise HTTPException(status_code=404,detail='History was not found')
-    return history.group_senders
+    return history

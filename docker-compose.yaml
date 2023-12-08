@@ -15,6 +15,23 @@ services:
     links:
       - database-pera 
     restart: always
+    networks:
+      - pera-network
+  
+  pera-frontend:
+    image: pera-frontend:v01
+    container_name: pera-frontend
+    restart: always
+    volumes:
+      - pera_frontend:/pera-api-frontend
+    ports:
+      - "3011:3011"
+    depends_on:
+      - fastapi
+    links:
+      - fastapi
+    networks:
+      - pera-network
   
   database-pera:
     image: mysql
@@ -26,6 +43,8 @@ services:
       - "6033:3306"
     volumes:
       - dbdata:/var/lib/mysql
+    networks:
+      - pera-network
   
   phpmyadmin:
     image: phpmyadmin
@@ -43,6 +62,8 @@ services:
       - 8081:80
     depends_on:
       - database-pera
+    networks:
+      - pera-network
 
   redis:
     image: redis:latest
@@ -51,6 +72,8 @@ services:
       - "5370:5370"
     volumes:
       - redis_data:/data
+    networks:
+      - pera-network
 
   celery:
     image: pera-fastapi:v01
@@ -63,6 +86,8 @@ services:
     depends_on:
       - redis
       - fastapi
+    networks:
+      - pera-network
 
   flower:
     image: pera-fastapi:v01
@@ -76,11 +101,18 @@ services:
     depends_on:
       - redis
       - celery
+    networks:
+      - pera-network
 
 volumes:
+  pera_frontend:
   dbdata:
   api_data:
   phpmyadmin_data:
   redis_data:
   celery_data:
   flower_data:
+
+networks:
+  pera-network:
+    driver: bridge
